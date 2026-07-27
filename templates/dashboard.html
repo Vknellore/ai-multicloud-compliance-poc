@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI Multi-Cloud Compliance PoC</title>
+<style>
+:root{--bg:#0f1e35;--card:#162338;--teal:#2ee5ba;--text:#fff;--muted:#94a3b8;--dim:#64748b;--crit:#ff6b6b;--high:#f5a623;--aws:#ff9900;--azure:#0078d4;--sap:#0faaff}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.45}
+header{background:linear-gradient(180deg,#14243e 0%,var(--bg) 100%);border-bottom:1px solid #1e3a5f;padding:1.25rem 2rem;display:flex;justify-content:space-between;align-items:center}
+header h1{font-size:1.35rem} header h1 span{color:var(--teal)}
+.badge{background:rgba(46,229,186,.15);color:var(--teal);font-size:.7rem;font-weight:600;letter-spacing:.08em;padding:.3rem .7rem;border-radius:4px;text-transform:uppercase}
+main{padding:1.5rem 2rem 3rem;max-width:1400px;margin:0 auto}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem;margin-bottom:1.75rem}
+.stat-card{background:var(--card);border-radius:10px;padding:1.1rem 1.25rem;border:1px solid #1e3a5f}
+.stat-card .label{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.35rem}
+.stat-card .value{font-size:1.75rem;font-weight:700}
+.stat-card .value.teal{color:var(--teal)}.stat-card .value.crit{color:var(--crit)}
+section{margin-bottom:2rem}
+section h2{font-size:1.05rem;margin-bottom:.9rem;display:flex;align-items:center;gap:.5rem}
+section h2::before{content:"";width:4px;height:1.1rem;background:var(--teal);border-radius:2px}
+.filters{display:flex;flex-wrap:wrap;gap:.6rem;margin-bottom:1rem}
+.filters button{background:var(--card);border:1px solid #1e3a5f;color:var(--muted);padding:.4rem .85rem;border-radius:6px;font-size:.8rem;cursor:pointer}
+.filters button.active,.filters button:hover{border-color:var(--teal);color:var(--teal)}
+.table-wrap{overflow-x:auto;border-radius:10px;border:1px solid #1e3a5f}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th{background:#14243e;text-align:left;padding:.7rem .9rem;color:var(--muted);font-weight:600;font-size:.75rem;text-transform:uppercase}
+td{padding:.75rem .9rem;border-top:1px solid #1e3a5f;vertical-align:top}
+tr:hover td{background:rgba(46,229,186,.04)}
+tr.remediated td{opacity:.55}
+.sev{display:inline-block;font-size:.7rem;font-weight:700;padding:.2rem .5rem;border-radius:4px}
+.sev-CRITICAL{background:rgba(255,107,107,.2);color:var(--crit)}
+.sev-HIGH{background:rgba(245,166,35,.2);color:var(--high)}
+.sev-MEDIUM{background:rgba(245,176,65,.15);color:#f5b041}
+.cloud-tag{font-size:.7rem;font-weight:700;text-transform:uppercase}
+.cloud-aws{color:var(--aws)}.cloud-azure{color:var(--azure)}.cloud-sap{color:var(--sap)}
+.score{font-weight:700;color:var(--teal)}
+.title-cell{max-width:280px}.title-cell strong{display:block;margin-bottom:.2rem}
+.title-cell .desc{color:var(--muted);font-size:.78rem}
+.btn{background:transparent;border:1px solid var(--teal);color:var(--teal);padding:.3rem .65rem;border-radius:5px;font-size:.75rem;cursor:pointer}
+.btn:hover{background:rgba(46,229,186,.12)}.btn:disabled{border-color:var(--dim);color:var(--dim);cursor:default}
+.detail{display:none;background:var(--card);border:1px solid #1e3a5f;border-radius:10px;padding:1.25rem 1.5rem;margin-top:1rem}
+.detail.open{display:block}
+.detail h3{margin-bottom:.6rem;font-size:1rem}
+.detail p{color:var(--muted);margin-bottom:.6rem;font-size:.88rem}
+.detail .meta{display:flex;flex-wrap:wrap;gap:1rem;margin-bottom:.8rem;font-size:.8rem}
+.detail .meta span{color:var(--dim)}.detail .meta strong{color:var(--text)}
+pre{background:#0a1525;padding:.85rem 1rem;border-radius:6px;overflow-x:auto;font-size:.78rem;color:#1fb896;margin-top:.5rem}
+footer{text-align:center;padding:1.5rem;color:var(--dim);font-size:.75rem;border-top:1px solid #1e3a5f}
+.log-list{list-style:none}
+.log-list li{background:var(--card);border:1px solid #1e3a5f;border-radius:8px;padding:.7rem 1rem;margin-bottom:.5rem;font-size:.85rem;color:var(--muted)}
+.log-list li strong{color:var(--teal)}
+</style>
+</head>
+<body>
+<header>
+  <h1><span>AI</span> Multi-Cloud Compliance Platform</h1>
+  <div class="badge">Proof of Concept</div>
+</header>
+<main>
+  <div class="stats">
+    <div class="stat-card"><div class="label">Compliance Score</div><div class="value teal">{{ stats.compliance_score }}%</div></div>
+    <div class="stat-card"><div class="label">Total Findings</div><div class="value">{{ stats.total }}</div></div>
+    <div class="stat-card"><div class="label">Critical Open</div><div class="value crit">{{ stats.critical_open }}</div></div>
+    <div class="stat-card"><div class="label">AWS</div><div class="value" style="color:var(--aws)">{{ stats.by_cloud.get('aws', 0) }}</div></div>
+    <div class="stat-card"><div class="label">Azure</div><div class="value" style="color:var(--azure)">{{ stats.by_cloud.get('azure', 0) }}</div></div>
+    <div class="stat-card"><div class="label">SAP</div><div class="value" style="color:var(--sap)">{{ stats.by_cloud.get('sap', 0) }}</div></div>
+  </div>
+  <section>
+    <h2>Prioritized Findings (AI Risk Ranked)</h2>
+    <div class="filters">
+      <button class="active" onclick="filterCloud('all', this)">All</button>
+      <button onclick="filterCloud('aws', this)">AWS</button>
+      <button onclick="filterCloud('azure', this)">Azure</button>
+      <button onclick="filterCloud('sap', this)">SAP</button>
+    </div>
+    <div class="table-wrap">
+      <table id="findings-table">
+        <thead><tr><th>Risk</th><th>Sev</th><th>Cloud</th><th>Finding</th><th>Control</th><th>AI Priority</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for f in findings %}
+          <tr class="finding-row {% if f.status == 'REMEDIATED' %}remediated{% endif %}" data-cloud="{{ f.cloud }}" data-id="{{ f.id }}">
+            <td class="score">{{ f.risk_score }}</td>
+            <td><span class="sev sev-{{ f.severity }}">{{ f.severity }}</span></td>
+            <td><span class="cloud-tag cloud-{{ f.cloud }}">{{ f.cloud }}</span></td>
+            <td class="title-cell"><strong>{{ f.title }}</strong><div class="desc">{{ f.resource }}</div></td>
+            <td style="color:var(--muted);font-size:.78rem">{{ f.control }}</td>
+            <td style="font-size:.8rem;color:var(--teal)">{{ f.ai_priority }}</td>
+            <td style="font-size:.8rem">{{ f.status }}</td>
+            <td><button class="btn" onclick="showDetail('{{ f.id }}')">Details</button></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div id="detail-panel" class="detail">
+      <h3 id="d-title"></h3>
+      <div class="meta">
+        <div><span>ID</span> <strong id="d-id"></strong></div>
+        <div><span>Resource</span> <strong id="d-resource"></strong></div>
+        <div><span>Framework</span> <strong id="d-framework"></strong></div>
+        <div><span>Region</span> <strong id="d-region"></strong></div>
+      </div>
+      <p><strong style="color:var(--text)">AI Explanation:</strong> <span id="d-explanation"></span></p>
+      <p><strong style="color:var(--text)">Business Impact:</strong> <span id="d-impact"></span></p>
+      <p><strong style="color:var(--text)">Remediation:</strong> <span id="d-remediation"></span></p>
+      <div id="d-iac-wrap" style="display:none"><strong style="color:var(--text);font-size:.88rem">Suggested IaC:</strong><pre id="d-iac"></pre></div>
+      <div style="margin-top:1rem"><button class="btn" id="btn-remediate" onclick="doRemediate()">Mark Remediated (PoC)</button></div>
+    </div>
+  </section>
+  <section>
+    <h2>Remediation Log</h2>
+    {% if remediation_log %}
+    <ul class="log-list" id="log-list">{% for e in remediation_log %}<li><strong>{{ e.finding_id }}</strong> — {{ e.title }} · by {{ e.approved_by }} · {{ e.timestamp }}</li>{% endfor %}</ul>
+    {% else %}
+    <p style="color:var(--dim);font-size:.9rem" id="log-empty">No remediations recorded yet. Use “Mark Remediated” on a finding.</p>
+    <ul class="log-list" id="log-list"></ul>
+    {% endif %}
+  </section>
+</main>
+<footer>AI Multi-Cloud Compliance Platform · PoC · AWS · Azure · SAP · Not for production use</footer>
+<script>
+const findings = {{ findings_json | tojson }};
+function filterCloud(cloud, btn) {
+  document.querySelectorAll('.filters button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.finding-row').forEach(row => {
+    row.style.display = (cloud === 'all' || row.dataset.cloud === cloud) ? '' : 'none';
+  });
+}
+let currentId = null;
+function showDetail(id) {
+  const f = findings.find(x => x.id === id);
+  if (!f) return;
+  currentId = id;
+  document.getElementById('d-title').textContent = f.title;
+  document.getElementById('d-id').textContent = f.id;
+  document.getElementById('d-resource').textContent = f.resource;
+  document.getElementById('d-framework').textContent = f.framework;
+  document.getElementById('d-region').textContent = f.region;
+  document.getElementById('d-explanation').textContent = f.ai_explanation;
+  document.getElementById('d-impact').textContent = f.business_impact;
+  document.getElementById('d-remediation').textContent = f.remediation;
+  const iacWrap = document.getElementById('d-iac-wrap');
+  if (f.iac_snippet) { iacWrap.style.display = 'block'; document.getElementById('d-iac').textContent = f.iac_snippet; }
+  else { iacWrap.style.display = 'none'; }
+  const btn = document.getElementById('btn-remediate');
+  btn.disabled = f.status === 'REMEDIATED';
+  btn.textContent = f.status === 'REMEDIATED' ? 'Already Remediated' : 'Mark Remediated (PoC)';
+  document.getElementById('detail-panel').classList.add('open');
+  document.getElementById('detail-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+async function doRemediate() {
+  if (!currentId) return;
+  const res = await fetch('/api/remediate', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ finding_id: currentId, approved_by: 'poc-operator' })
+  });
+  const data = await res.json();
+  if (data.message) {
+    const f = findings.find(x => x.id === currentId);
+    if (f) f.status = 'REMEDIATED';
+    const row = document.querySelector(`tr[data-id="${currentId}"]`);
+    if (row) { row.classList.add('remediated'); row.cells[6].textContent = 'REMEDIATED'; }
+    document.getElementById('btn-remediate').disabled = true;
+    document.getElementById('btn-remediate').textContent = 'Already Remediated';
+    const empty = document.getElementById('log-empty');
+    if (empty) empty.style.display = 'none';
+    const ul = document.getElementById('log-list');
+    const li = document.createElement('li');
+    li.innerHTML = `<strong>${data.log.finding_id}</strong> — ${data.log.title} · by ${data.log.approved_by} · ${data.log.timestamp}`;
+    ul.prepend(li);
+  }
+}
+</script>
+</body>
+</html>
