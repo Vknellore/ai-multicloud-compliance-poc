@@ -4,6 +4,15 @@
 
 Lightweight proof-of-concept control plane for continuous compliance across AWS, Azure, and SAP landscapes.
 
+## Architecture deck (PDF / PPTX)
+
+Download the latest architecture presentation (includes process flow diagrams):
+
+- **Repo:** https://github.com/Vknellore/ai-multicloud-compliance-poc
+- Place `AI_MultiCloud_Compliance_PoC.pdf` and `.pptx` in this repo (or Releases) after download from your build artifacts.
+
+Deck covers: business context, functional architecture, **process flow diagrams** (E2E, data flow, AI prioritization, remediation decision), technical layers, system landscape, SAP deep-dive, PoC phases, and success criteria.
+
 ## Features
 
 | Capability | Implementation |
